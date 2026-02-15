@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <title>ShopEasy - Local Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .test-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .test-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+
+        .lock-demo {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .locked {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shopping-bag"></i> ShopEasy - Local Test</h1>
+            <p>Testing authentication without HTTPS requirement</p>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-info-circle"></i> Device Information</h3>
+            <div id="device-info" class="status">
+                <div>Loading device information...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-shield-alt"></i> Authentication Test</h3>
+            <div>
+                <button class="test-btn" onclick="testBiometric()">
+                    <i class="fas fa-fingerprint"></i> Test Biometric
+                </button>
+                <button class="test-btn" onclick="setupPassword()">
+                    <i class="fas fa-key"></i> Setup Password
+                </button>
+                <button class="test-btn" onclick="clearData()">
+                    <i class="fas fa-trash"></i> Clear Data
+                </button>
+            </div>
+            <div id="auth-status" class="status">
+                <div>Ready to test authentication</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-lock"></i> Lock Demo</h3>
+            <div>
+                <button class="test-btn" onclick="toggleLock()" id="lock-btn">
+                    <i class="fas fa-lock"></i> Lock App
+                </button>
+                <button class="test-btn" onclick="testPersistentLock()" style="background: rgba(255, 193, 7, 0.3);">
+                    <i class="fas fa-shield-alt"></i> Test Persistent Lock
+                </button>
+                <button class="test-btn" onclick="simulateRestart()" style="background: rgba(220, 53, 69, 0.3);">
+                    <i class="fas fa-redo"></i> Simulate Restart
+                </button>
+            </div>
+            <div id="lock-demo" class="lock-demo">
+                <h4>App Content</h4>
+                <p>This content will be blurred when locked</p>
+                <button class="test-btn">Sample Button</button>
+                <div id="persistent-info" style="margin-top: 15px; font-size: 14px; opacity: 0.8;"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-link"></i> Links</h3>
+            <div>
+                <a href="index.html" class="test-btn" style="text-decoration: none; display: inline-block;">
+                    <i class="fas fa-home"></i> Main App
+                </a>
+                <a href="https://ctrlxmir.github.io/reactify-mir/" class="test-btn" style="text-decoration: none; display: inline-block;" target="_blank">
+                    <i class="fas fa-globe"></i> GitHub Pages
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; color: black; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; text-align: center;">
+            <h3 id="modal-title">Setup Password</h3>
+            <input type="password" id="password-input" class="password-input" placeholder="Enter password">
+            <div>
+                <button onclick="handlePassword()" class="test-btn" style="color: black;">
+                    <span id="modal-btn-text">Save</span>
+                </button>
+                <button onclick="closeModal()" class="test-btn" style="color: black;">
+                    Cancel
+                </button>
+            </div>
+            <div id="modal-status" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Local test variables
+        let isLocked = false;
+        let hasPassword = false;
+        let isPasswordMode = false;
+        let storedPassword = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDeviceInfo();
+            loadStoredData();
+        });
+
+        // Load device information
+        function loadDeviceInfo() {
+            const deviceInfo = document.getElementById('device-info');
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'URL': window.location.href,
+                'Protocol': window.location.protocol,
+                'Hostname': window.location.hostname,
+                'Is Secure Context': window.isSecureContext,
+                'WebAuthn Support': !!window.PublicKeyCredential,
+                'Local Storage': !!window.localStorage
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                const className = value ? 'success' : 'error';
+                html += `<div class="${className}">${key}: ${value}</div>`;
+            }
+
+            deviceInfo.innerHTML = html;
+        }
+
+        // Test biometric
+        async function testBiometric() {
+            const status = document.getElementById('auth-status');
+            status.innerHTML = '<div class="info">Testing biometric support...</div>';
+
+            try {
+                if (!window.PublicKeyCredential) {
+                    throw new Error('WebAuthn not supported');
+                }
+
+                if (!window.isSecureContext) {
+                    throw new Error('HTTPS required for WebAuthn');
+                }
+
+                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+
+                if (available) {
+                    status.innerHTML = '<div class="success">✅ Biometric authentication available!</div>';
+
+                    // Try to create a credential
+                    const challenge = crypto.getRandomValues(new Uint8Array(32));
+                    const credential = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: challenge,
+                            rp: { name: "ShopEasy Local Test" },
+                            user: {
+                                id: crypto.getRandomValues(new Uint8Array(16)),
+                                name: "test@shopeasy.com",
+                                displayName: "Test User"
+                            },
+                            pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                            authenticatorSelection: {
+                                authenticatorAttachment: "platform",
+                                userVerification: "required"
+                            },
+                            timeout: 30000
+                        }
+                    });
+
+                    status.innerHTML = '<div class="success">✅ Biometric test successful! Credential created.</div>';
+
+                } else {
+                    throw new Error('Platform authenticator not available');
+                }
+
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Biometric test failed: ${error.message}</div>`;
+                status.innerHTML += '<div class="warning">⚠️ Use password mode instead</div>';
+            }
+        }
+
+        // Setup password
+        function setupPassword() {
+            document.getElementById('modal-title').textContent = 'Setup Password';
+            document.getElementById('password-input').placeholder = 'Enter new password';
+            document.getElementById('modal-btn-text').textContent = 'Save';
+            document.getElementById('password-modal').style.display = 'flex';
+            document.getElementById('password-input').focus();
+            isPasswordMode = true;
+        }
+
+        // Handle password
+        function handlePassword() {
+            const password = document.getElementById('password-input').value;
+            const modalStatus = document.getElementById('modal-status');
+
+            if (isPasswordMode) {
+                // Setup mode
+                if (password.length < 4) {
+                    modalStatus.innerHTML = '<div class="error">Password must be at least 4 characters</div>';
+                    return;
+                }
+
+                storedPassword = password;
+                hasPassword = true;
+                localStorage.setItem('testPassword', password);
+                localStorage.setItem('testHasPassword', 'true');
+
+                modalStatus.innerHTML = '<div class="success">✅ Password saved!</div>';
+
+                setTimeout(() => {
+                    closeModal();
+                    document.getElementById('auth-status').innerHTML = '<div class="success">✅ Password authentication setup complete!</div>';
+                }, 1500);
+
+            } else {
+                // Unlock mode
+                if (password === storedPassword) {
+                    modalStatus.innerHTML = '<div class="success">✅ Correct password!</div>';
+
+                    setTimeout(() => {
+                        closeModal();
+                        unlockApp();
+                    }, 1000);
+                } else {
+                    modalStatus.innerHTML = '<div class="error">❌ Incorrect password</div>';
+                    document.getElementById('password-input').value = '';
+                    document.getElementById('password-input').focus();
+                }
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('password-modal').style.display = 'none';
+            document.getElementById('password-input').value = '';
+            document.getElementById('modal-status').innerHTML = '';
+            isPasswordMode = false;
+        }
+
+        // Toggle lock
+        function toggleLock() {
+            if (isLocked) {
+                // Try to unlock
+                if (hasPassword) {
+                    document.getElementById('modal-title').textContent = 'Enter Password to Unlock';
+                    document.getElementById('password-input').placeholder = 'Enter password';
+                    document.getElementById('modal-btn-text').textContent = 'Unlock';
+                    document.getElementById('password-modal').style.display = 'flex';
+                    document.getElementById('password-input').focus();
+                } else {
+                    alert('No authentication method setup. Please setup password first.');
+                }
+            } else {
+                // Lock
+                if (hasPassword) {
+                    lockApp();
+                } else {
+                    alert('Please setup password authentication first.');
+                }
+            }
+        }
+
+        // Lock app
+        function lockApp() {
+            isLocked = true;
+            document.getElementById('lock-demo').classList.add('locked');
+            document.getElementById('lock-btn').innerHTML = '<i class="fas fa-unlock"></i> Unlock App';
+            document.getElementById('auth-status').innerHTML = '<div class="warning">🔒 App is locked</div>';
+        }
+
+        // Unlock app
+        function unlockApp() {
+            isLocked = false;
+            document.getElementById('lock-demo').classList.remove('locked');
+            document.getElementById('lock-btn').innerHTML = '<i class="fas fa-lock"></i> Lock App';
+            document.getElementById('auth-status').innerHTML = '<div class="success">🔓 App is unlocked</div>';
+
+            // Clear persistent lock state
+            localStorage.setItem('testLockState', 'UNLOCKED');
+            localStorage.removeItem('testLockTime');
+            updatePersistentInfo();
+        }
+
+        // Clear data
+        function clearData() {
+            localStorage.removeItem('testPassword');
+            localStorage.removeItem('testHasPassword');
+            hasPassword = false;
+            storedPassword = '';
+            isLocked = false;
+            unlockApp();
+            document.getElementById('auth-status').innerHTML = '<div class="info">All data cleared</div>';
+        }
+
+        // Load stored data
+        function loadStoredData() {
+            const password = localStorage.getItem('testPassword');
+            const hasPass = localStorage.getItem('testHasPassword');
+            const lockState = localStorage.getItem('testLockState');
+
+            if (password && hasPass === 'true') {
+                storedPassword = password;
+                hasPassword = true;
+                document.getElementById('auth-status').innerHTML = '<div class="success">✅ Password authentication loaded</div>';
+            }
+
+            // Check persistent lock state
+            if (lockState === 'LOCKED') {
+                isLocked = true;
+                lockApp();
+                document.getElementById('auth-status').innerHTML = '<div class="warning">🔒 App was locked previously - persistent lock active</div>';
+            }
+
+            updatePersistentInfo();
+        }
+
+        // Update persistent info display
+        function updatePersistentInfo() {
+            const persistentInfo = document.getElementById('persistent-info');
+            const lockState = localStorage.getItem('testLockState');
+            const lockTime = localStorage.getItem('testLockTime');
+
+            if (lockState === 'LOCKED' && lockTime) {
+                const lockDate = new Date(parseInt(lockTime));
+                persistentInfo.innerHTML = `🔒 Persistent Lock: Active since ${lockDate.toLocaleString()}`;
+            } else {
+                persistentInfo.innerHTML = '🔓 Persistent Lock: Inactive';
+            }
+        }
+
+        // Test persistent lock feature
+        function testPersistentLock() {
+            if (!hasPassword) {
+                alert('Please setup password first to test persistent lock');
+                return;
+            }
+
+            // Lock the app with persistent state
+            lockApp();
+            localStorage.setItem('testLockState', 'LOCKED');
+            localStorage.setItem('testLockTime', Date.now().toString());
+
+            updatePersistentInfo();
+
+            alert('App locked with persistent state!\n\nNow try:\n1. Refresh the page\n2. Close and reopen browser\n3. Clear cache (app should still be locked)\n\nOnly correct password will unlock it.');
+        }
+
+        // Simulate app restart/refresh
+        function simulateRestart() {
+            alert('Simulating app restart...\nPage will reload to test persistent lock state');
+            location.reload();
+        }
+
+        // Enter key support
+        document.getElementById('password-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handlePassword();
+            }
+        });
+    </script>
+</body>
+</html>
