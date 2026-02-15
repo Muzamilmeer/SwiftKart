@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <title>Debug Lock/Unlock - ShopEasy</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .debug-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-unlocked { background: #d4edda; color: #155724; }
+        .status-locked { background: #f8d7da; color: #721c24; }
+        .status-setup { background: #fff3cd; color: #856404; }
+
+        .test-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-btn:hover { background: #5a6fd8; }
+        .test-btn.red { background: #ff6b6b; }
+        .test-btn.green { background: #51cf66; }
+        .test-btn.gray { background: #6c757d; opacity: 0.6; cursor: not-allowed; }
+
+        .main-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .blurred {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        .console-log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .unlock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .unlock-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <h2>🔍 Lock/Unlock Debug Panel</h2>
+
+        <div id="status-display" class="status-indicator status-setup">
+            📱 Status: Biometric Setup Required
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h3>Debug Actions:</h3>
+            <button class="test-btn" onclick="simulateBiometricSetup()">
+                <i class="fas fa-fingerprint"></i> Simulate Biometric Setup
+            </button>
+            <button class="test-btn" onclick="testLockApp()" id="lock-btn">
+                <i class="fas fa-lock"></i> Test Lock
+            </button>
+            <button class="test-btn red" onclick="testUnlockApp()">
+                <i class="fas fa-unlock"></i> Force Unlock
+            </button>
+            <button class="test-btn green" onclick="clearLogs()">
+                <i class="fas fa-trash"></i> Clear Logs
+            </button>
+        </div>
+
+        <div>
+            <h3>Console Output:</h3>
+            <div id="console-output" class="console-log">
+                Console output will appear here...
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content" class="main-content">
+        <h1>🛍️ ShopEasy Main App</h1>
+        <p>This is the main app content that gets blurred when locked.</p>
+        <button class="test-btn">Sample Button</button>
+        <button class="test-btn">Another Button</button>
+    </div>
+
+    <!-- Unlock Overlay -->
+    <div id="unlock-overlay" class="unlock-overlay">
+        <div class="unlock-content">
+            <i class="fas fa-lock" style="font-size: 3rem; color: #667eea; margin-bottom: 20px;"></i>
+            <h2>App Locked</h2>
+            <p>Testing unlock functionality</p>
+            <button class="test-btn" onclick="simulateUnlock()">
+                <i class="fas fa-fingerprint"></i> Simulate Biometric Unlock
+            </button>
+            <button class="test-btn red" onclick="forceUnlock()">
+                <i class="fas fa-key"></i> Force Unlock
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Debug variables
+        let isAppLocked = false;
+        let biometricSetupCompleted = false;
+        let isAuthenticated = false;
+        let logs = [];
+
+        // Debug logging function
+        function debugLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logs.push(logMessage);
+
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = logs.slice(-20).join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+            console.log(logMessage);
+        }
+
+        // Update status display
+        function updateStatus() {
+            const statusDiv = document.getElementById('status-display');
+            const lockBtn = document.getElementById('lock-btn');
+
+            if (isAppLocked) {
+                statusDiv.className = 'status-indicator status-locked';
+                statusDiv.innerHTML = '🔒 Status: App Locked';
+                lockBtn.innerHTML = '<i class="fas fa-unlock"></i> Test Unlock';
+                lockBtn.className = 'test-btn red';
+            } else if (!biometricSetupCompleted) {
+                statusDiv.className = 'status-indicator status-setup';
+                statusDiv.innerHTML = '📱 Status: Biometric Setup Required';
+                lockBtn.innerHTML = '<i class="fas fa-fingerprint"></i> Setup Required';
+                lockBtn.className = 'test-btn gray';
+            } else {
+                statusDiv.className = 'status-indicator status-unlocked';
+                statusDiv.innerHTML = '🔓 Status: App Unlocked (Ready to Lock)';
+                lockBtn.innerHTML = '<i class="fas fa-lock"></i> Test Lock';
+                lockBtn.className = 'test-btn';
+            }
+        }
+
+        // Simulate biometric setup
+        function simulateBiometricSetup() {
+            debugLog('🔐 Simulating biometric setup...');
+            biometricSetupCompleted = true;
+            isAuthenticated = true;
+            debugLog('✅ Biometric setup completed!');
+            updateStatus();
+        }
+
+        // Test lock function
+        function testLockApp() {
+            if (!biometricSetupCompleted) {
+                debugLog('❌ Cannot lock: Biometric setup required');
+                alert('Please complete biometric setup first!');
+                return;
+            }
+
+            debugLog('🔒 Locking app...');
+            isAppLocked = true;
+            isAuthenticated = false;
+
+            // Add blur effect
+            const mainContent = document.getElementById('main-content');
+            mainContent.classList.add('blurred');
+
+            // Show unlock overlay
+            const overlay = document.getElementById('unlock-overlay');
+            overlay.style.display = 'flex';
+
+            debugLog('✅ App locked successfully');
+            updateStatus();
+        }
+
+        // Test unlock function
+        function testUnlockApp() {
+            debugLog('🔓 Force unlocking app...');
+            unlockApp();
+        }
+
+        // Simulate biometric unlock
+        function simulateUnlock() {
+            debugLog('🔐 Simulating biometric authentication...');
+
+            setTimeout(() => {
+                debugLog('✅ Biometric authentication successful!');
+                unlockApp();
+            }, 1000);
+        }
+
+        // Force unlock
+        function forceUnlock() {
+            debugLog('🚨 Force unlock triggered');
+            unlockApp();
+        }
+
+        // Unlock app function
+        function unlockApp() {
+            debugLog('🔓 Unlocking app...');
+
+            isAppLocked = false;
+            isAuthenticated = true;
+
+            // Remove blur effect
+            const mainContent = document.getElementById('main-content');
+            mainContent.classList.remove('blurred');
+            debugLog('✅ Blur removed from main content');
+
+            // Hide unlock overlay
+            const overlay = document.getElementById('unlock-overlay');
+            overlay.style.display = 'none';
+            debugLog('✅ Unlock overlay hidden');
+
+            debugLog('✅ App unlocked successfully!');
+            updateStatus();
+        }
+
+        // Clear logs
+        function clearLogs() {
+            logs = [];
+            document.getElementById('console-output').innerHTML = 'Logs cleared...';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('🚀 Debug panel loaded');
+            updateStatus();
+        });
+    </script>
+</body>
+</html>
